@@ -1,0 +1,83 @@
+
+version: "3.9"
+
+services:
+  nestjs_postgres:
+    image: postgres:15
+    container_name: nestjs_pg_loadtest
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: loadtest
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+
+  nestjs_redis:
+    image: redis:7
+    container_name: nestjs_redis_loadtest
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    command: redis-server --save "" --appendonly no
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+
+
+  nestjs_app:
+    image: node:20-alpine
+    container_name: node_app
+    working_dir: /app
+    volumes:
+      - ./:/app
+      # This prevents your local node_modules from conflicting with the container
+      - /app/node_modules
+    environment:
+      CI: "true"
+      DB_HOST: nestjs_postgres
+      DB_PORT: 5432
+      DB_NAME: loadtest
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      REDIS_HOST: nestjs_redis
+      REDIS_PORT: 6379
+    command: >
+      sh -c "
+      npm install -g pnpm &&
+      pnpm install &&
+      pnpm start:prod
+      "
+    ports:
+      - "3000:3000"
+    depends_on:
+      nestjs_postgres:
+        condition: service_healthy
+      nestjs_redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+volumes:
+  pg_data:

@@ -1,0 +1,71 @@
+services:
+  go_postgres:
+    image: postgres:15
+    container_name: go_pg_loadtest
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: loadtest
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+
+  go_redis:
+    image: redis:7
+    container_name: go_redis_loadtest
+    restart: unless-stopped
+    ports:
+      - "6381:6379"
+    command: redis-server --save "" --appendonly no
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+
+  go_app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: go_app
+    environment:
+      DB_HOST: go_postgres
+      DB_PORT: 5432
+      DB_NAME: loadtest
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      REDIS_HOST: go_redis
+      REDIS_PORT: 6379
+    ports:
+      - "3001:3000"
+    depends_on:
+      go_postgres:
+        condition: service_healthy
+      go_redis:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+
+volumes:
+  pg_data:
