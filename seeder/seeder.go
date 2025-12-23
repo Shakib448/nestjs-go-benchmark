@@ -97,7 +97,7 @@ func buildDBURL() string {
 		getEnvKey("DB_USER", "postgres"),
 		getEnvKey("DB_PASSWORD", "postgres"),
 		getEnvKey("DB_HOST", "localhost"),
-		getEnvKey("DB_PORT", "5432"),
+		getEnvKey("DB_PORT", "5434"),
 		getEnvKey("DB_NAME", "loadtest"))
 }
 
