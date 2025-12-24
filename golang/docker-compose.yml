@@ -19,7 +19,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.50"
+          cpus: ".50"
           memory: 512M
 
   go_redis:
@@ -54,7 +54,7 @@ services:
       REDIS_HOST: go_redis
       REDIS_PORT: 6379
     ports:
-      - "3001:3000"
+      - "3001:3001"
     depends_on:
       go_postgres:
         condition: service_healthy
